@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/jpa_study?serverTimezone=UTC&characterEncoding=UTF-8
+    username: root
+    password: 1234
+
+  jpa:
+    # 변수 명 그대로 사용 (자동으로 snake case 변환 방지)
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    # 쿼리 확인
+    show-sql: true
