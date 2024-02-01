@@ -1,10 +1,18 @@
 package com.study.jpa.user.entity;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
+import com.study.jpa.team.entity.Team;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,5 +49,14 @@ public class User {
 
     private String userPw;
 
-    private int teamCode;
+    /*
+     * 한개의 팀은 여러명의 사용자를 가질 수 있다.
+     * User 입장 > @ManyToOne
+     * Team 입장 > @OneToMany
+     * 
+     * @JoinColumn > 연관관계의 주인임을 나타내며, 외래 키를 지정한다.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "teamCode")
+    private Team team;
 }

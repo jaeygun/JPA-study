@@ -8,4 +8,6 @@ import com.study.jpa.user.entity.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    User findUserByUserUid(long userUid);
+
 }
