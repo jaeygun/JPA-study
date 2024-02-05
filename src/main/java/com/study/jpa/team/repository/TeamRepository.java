@@ -6,4 +6,5 @@ import com.study.jpa.team.entity.Team;
 
 public interface TeamRepository extends JpaRepository<Team, Integer>{
 
+    Team findByTeamCode(int teamCode);
 }
