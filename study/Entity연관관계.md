@@ -5,7 +5,7 @@
 
 1. 방향
 2. 연관관계 주인
-3. 다중성
+3. 다중성 (N:1, 1:N, 1:1, N:N)
 
 <br/>
 
@@ -297,8 +297,129 @@ JPA 기본 설정 중 필요한 테이블을 create 해주는 설정이 존재�
 - N:1, 1:N 관계에서 연관관계의 주인은 N 이다.
 - `@mappedBy`값은 주인 엔티티의 참조되는 필드명이다.
 
-
-
 <br/>
 
-## 3. 다중성
+## 3. 다중성 (N:1, 1:N, 1:1, N:N)
+### 1) 다대일(N:1)
+제일 처음 설명했던 Team과 User의 관계이다.
+
+### 2) 일대다(1:N)
+일대다 관계는 다대일 관계의 반대이기 때문에 똑같은거 아닐까라는 생각을 할 수 있지만, 다대일 관계에서 주인은 다(N) 이고, 일대다 관계에서 주인은 일(1)이다.
+
+아래는 일대다 관계를 한 Team(1), User(N) 엔티티이다.
+```Java
+@Entity
+@Table(name = "team")
+@Getter
+@Setter
+public class Team {
+
+    @Id
+    private int teamCode;
+
+    private int parentTeamCode;
+
+    private String teamName;
+
+    @OneToMany
+    @JoinColumn(name = "userUid")
+    private List<User> userList = new ArrayList<>();
+
+}
+```
+
+```Java
+@Entity
+@Table(name = "user")
+@Setter
+@Getter
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long userUid;
+
+    private String userName;
+
+    private String userId;
+
+    private String userPw;
+}
+```
+그리고 아래 코드는 user를 생성하고 team까지 생성해보는 테스트 코드이다.
+```Java
+@Test
+void relate2() {
+    User user1 = new User();
+    user1.setUserId("1");
+    user1.setUserPw("1234");
+    user1.setUserName("홍길동1");
+    userRepository.save(user1);
+
+    User user2 = new User();
+    user2.setUserId("2");
+    user2.setUserPw("1234");
+    user2.setUserName("홍길동2");
+    userRepository.save(user2);
+    
+    Team team = new Team();
+    team.setTeamCode(100010);
+    team.setParentTeamCode(0);
+    team.setTeamName("테스트팀1234");
+    team.getUserList().add(user1);
+    team.getUserList().add(user2);
+    teamRepository.save(team);
+    
+}
+```
+1:N 관계에서 1이 주인인 상태로 위의 코드를 실행하면 어떤 쿼리가 실행이 될까?
+```
+# user 1 저장 (teamCode는 모르기 때문에 null로 저장)
+Hibernate: insert into user (userId,userName,userPw) values (?,?,?)
+
+# user 2 저장 (teamCode는 모르기 때문에 null로 저장)
+Hibernate: insert into user (userId,userName,userPw) values (?,?,?)
+
+# team save() 전 존재 여부 확인 쿼리
+Hibernate: select t1_0.teamCode,t1_0.parentTeamCode,t1_0.teamName from team t1_0 where t1_0.teamCode=?
+Hibernate: select u1_0.userUid,u1_0.userId,u1_0.userName,u1_0.userPw from user u1_0 where u1_0.userUid=?
+Hibernate: select u1_0.userUid,u1_0.userId,u1_0.userName,u1_0.userPw from user u1_0 where u1_0.userUid=?
+
+# team 저장
+Hibernate: insert into team (parentTeamCode,teamName,teamCode) values (?,?,?)
+
+# 저장했던 user1 teamCode update
+Hibernate: update user set teamCode=? where userUid=?
+
+# 저장했던 user2 teamCode update
+Hibernate: update user set teamCode=? where userUid=?
+```
+위의 결과에서 User를 저장할 때 teamCode를 모르기 때문에 일단 null로 저장한 다음 Team을 저장한 뒤 다시 User의 teamCode를 업데이트 하는 쿼리를 확인할 수 있다.
+
+1:N 단방향 매핑은 매핑한 객체가 관리하는 외래 키가 다른 테이블에 있다는 단점 때문에 위와 같이 update 쿼리가 한번 더 실행이 되는 모습이다.
+
+성능 문제 때문이기도 있지만 유지보수적 관점으로 봤을 때 위와 같은 연관관계는 좋아 보이진 않는다. 1:N 단방향 매핑보다는 N:1 양방향 매핑을 사용하는 것이 좋다.
+
+만약 N:1 양방향 매핑이라면 아래 쿼리가 실행 됬을 것이다.
+
+```
+# team 저장 전 select 후 insert : save() 메소드
+Hibernate: select t1_0.teamCode,t1_0.parentTeamCode,t1_0.teamName from team t1_0 where t1_0.teamCode=?
+Hibernate: insert into team (parentTeamCode,teamName,teamCode) values (?,?,?)
+
+# user1 저장 전 select 후 insert : save() 메소드
+Hibernate: select null,t1_0.parentTeamCode,t1_0.teamName from team t1_0 where t1_0.teamCode=?
+Hibernate: insert into user (teamCode,userId,userName,userPw) values (?,?,?,?)
+
+# user2 저장 전 select 후 insert : save() 메소드
+Hibernate: select null,t1_0.parentTeamCode,t1_0.teamName from team t1_0 where t1_0.teamCode=?
+Hibernate: insert into user (teamCode,userId,userName,userPw) values (?,?,?,?)
+```
+실행 쿼리가 훨씬 간결해졌다.
+
+
+
+### 3) 일대일(1:1)
+
+
+### 4) 다대다(N:N)
