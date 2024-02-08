@@ -420,6 +420,110 @@ Hibernate: insert into user (teamCode,userId,userName,userPw) values (?,?,?,?)
 
 
 ### 3) 일대일(1:1)
+일대다(1:N)나 다대일(N:1)관계에서는 항상 다(N)쪽이 외래키를 가지고 있지만 일대일(1:1) 관계에서는 주 테이블 또는 대상 테이블이 외래키를 가질 수 있다. 때문에 일대일 관계에서는 주 or 대상 테이블 중 어느 테이블에 외래키를 두고 관리를 할지 선택해야 한다.
+
+JPA에서는 외래키를 가지고 있는 쪽이 연관관계의 주인이 되고, 연관관계의 주인이 외래키를 관리(등록, 수정, 삭제)를 할 수 있다.
+
+    user 테이블과 user_info 이렇게 두 테이블이 있다고 가정해보겠다.
+
+#### 1. 일대일 관계에서 주 테이블(user)에 외래키가 있는 경우(단방향)
+```Java
+@Entity
+@Table(name = "post")
+@Getter
+@Setter
+public class Post {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long postUid;
+
+    private String subject;
+
+    @OneToOne
+    @JoinColumn(name = "postInfoUid")
+    private PostInfo postInfo;
+}
+```
+```Java
+@Entity
+@Table(name = "post_info")
+@Getter
+@Setter
+public class PostInfo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long postInfoUid;
+
+    private long postRegTime;
+
+}
+```
+위의 관계를 통해 User를 조회하면서 UserInfo도 함께 조회가 가능하게 된다.
+
+#### 2. 일대일 관계에서 주 테이블(user)에 외래키가 있는 경우(양방향)
+```Java
+@Entity
+@Table(name = "post_info")
+@Getter
+@Setter
+public class PostInfo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long postInfoUid;
+
+    private long postRegTime;
+
+    @OneToOne(mappedBy = "postInfo")
+    private Post post;
+
+}
+```
+Post 엔티티는 그대로이지만 양방향 연관관계 형성을 위해 PostInfo 엔티티에 Post정보를 가져올 수 있는 필드를 추가하고 `@OneToOne` 어노테이션을 추가해서 `mappedBy` 속성을 지정하여 주인을 Post로 정의 한다.
+
+#### 3. 일대일 관계에서 대상 테이블(user_info)에 외래키가 있는 경우(양방향)
+```Java
+@Entity
+@Table(name = "post")
+@Getter
+@Setter
+public class Post {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long postUid;
+
+    private String subject;
+
+    @OneToOne(mappedBy = "post")
+    private PostInfo postInfo;
+}
+```
+```Java
+@Entity
+@Table(name = "post_info")
+@Getter
+@Setter
+public class PostInfo {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long postInfoUid;
+
+    private long postRegTime;
+
+    @OneToOne
+    @JoinColumn(name = "postUid")
+    private Post post;
+}
+```
+위에서와 마찬가지로 두 엔티티(Post, PostInfo)에 `@OneToOne` 어노테이션을 두고 `mappedBy`를 이용해 주인관계를 설정한다.
 
 
-### 4) 다대다(N:N)
+#### 4. 일대일 관계에서 대상 테이블(user_info)에 외래키가 있는 경우(단방향)
+JPA에서는 해당 기능을 공식 지원하지 않기 때문에 제외.
+    
+    
+## 4. 다대다(N:N)
